@@ -64,24 +64,39 @@ class User(Base):
 class Post(Base):
     __tablename__ = "posts"
     id = Column(Integer, primary_key=True, index=True)
+    content_type = Column(String, default="post", index=True)
     clean = Column(String, unique=True, index=True)
     feather = Column(String, default="text")
     status = Column(String, default="public")
     pinned = Column(Integer, default=0)
+    title = Column(String, nullable=True)
+    body = Column(String, nullable=True)
+    parent_id = Column(Integer, ForeignKey("posts.id"), nullable=True) # Self-referencing key
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     user_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="posts")
-
+    # --- NEW: Self-referencing relationship for parent/child pages ---
+    parent = relationship("Post", remote_side=[id], back_populates="children")
+    children = relationship("Post", back_populates="parent")
 # ===============================================================================
 # 4. API SCHEMAS (Pydantic)
 # ===============================================================================
 # --- Define schemas in order of dependency ---
 
 class PostBase(BaseModel):
+    # --- ADD these new optional fields ---
+    content_type: str = "post"
+    title: Optional[str] = None
+    body: Optional[str] = None
+    parent_id: Optional[int] = None
+    
+    # --- Make feather optional ---
+    feather: Optional[str] = None
+    
+    # --- These stay the same ---
     clean: str
-    feather: str
     status: str = "public"
     pinned: bool = False
 
@@ -243,11 +258,17 @@ def read_groups(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return groups
 
 # --- Posts Endpoints ---
+
 @app.post("/posts/", response_model=PostModel, tags=["Posts"])
 def create_post(post: PostCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Updated to include all new fields from the post schema
     db_post = Post(
+        content_type=post.content_type,
+        title=post.title,
+        body=post.body,
+        parent_id=post.parent_id,
+        feather=post.feather,
         clean=post.clean, 
-        feather=post.feather, 
         status=post.status, 
         pinned=post.pinned,
         user_id=current_user.id
@@ -258,6 +279,11 @@ def create_post(post: PostCreate, db: Session = Depends(get_db), current_user: U
     return db_post
 
 @app.get("/posts/", response_model=List[PostModel], tags=["Posts"])
-def read_posts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    posts = db.query(Post).offset(skip).limit(limit).all()
+def read_posts(content_type: Optional[str] = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    query = db.query(Post)
+
+    if content_type:
+        query = query.filter(Post.content_type == content_type)
+
+    posts = query.offset(skip).limit(limit).all()
     return posts
