@@ -11,10 +11,10 @@ from fastapi.security import (APIKeyHeader, OAuth2PasswordBearer,OAuth2PasswordR
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from sqlalchemy import (JSON, Column, DateTime, ForeignKey, Integer, String,
-                        create_engine)
+from sqlalchemy import (JSON, Column, DateTime, ForeignKey, Integer, String, create_engine)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship, sessionmaker
+from fastapi import Response
 
 # ===============================================================================
 # 2. CONFIGURATION & SETUP
@@ -109,6 +109,16 @@ class PostModel(PostBase):
     updated_at: datetime.datetime
     class Config:
         orm_mode = True
+
+class PostUpdate(BaseModel):
+    content_type: Optional[str] = None
+    title: Optional[str] = None
+    body: Optional[str] = None
+    parent_id: Optional[int] = None
+    feather: Optional[str] = None
+    clean: Optional[str] = None
+    status: Optional[str] = None
+    pinned: Optional[bool] = None
 
 class GroupBase(BaseModel):
     name: str
@@ -278,6 +288,38 @@ def create_post(post: PostCreate, db: Session = Depends(get_db), current_user: U
     db.refresh(db_post)
     return db_post
 
+@app.put("/posts/{post_id}", response_model=PostModel, tags=["Posts"])
+def update_post(
+    post_id: int, 
+    post_update: PostUpdate, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    # Find the existing post in the database
+    db_post = db.query(Post).filter(Post.id == post_id).first()
+
+    # If the post doesn't exist, return a 404 error
+    if db_post is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+        
+    # --- PERMISSION CHECK (IMPORTANT) ---
+    # Check if the current user is the owner OR has a general "edit_post" permission
+    is_owner = db_post.user_id == current_user.id
+    can_edit_any = "edit_post" in current_user.group.permissions
+    
+    if not is_owner and not can_edit_any:
+        raise HTTPException(status_code=403, detail="Not authorized to edit this post")
+
+    # Update the post object with the new data
+    for key, value in post_update.dict(exclude_unset=True).items():
+        setattr(db_post, key, value)
+    
+    db_post.updated_at = datetime.datetime.utcnow() # Manually update the timestamp
+    
+    db.commit()
+    db.refresh(db_post)
+    return db_post
+
 @app.get("/posts/", response_model=List[PostModel], tags=["Posts"])
 def read_posts(content_type: Optional[str] = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     query = db.query(Post)
@@ -287,3 +329,25 @@ def read_posts(content_type: Optional[str] = None, skip: int = 0, limit: int = 1
 
     posts = query.offset(skip).limit(limit).all()
     return posts
+
+@app.delete("/posts/{post_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Posts"])
+def delete_post(
+    post_id: int, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    db_post = db.query(Post).filter(Post.id == post_id).first()
+
+    if db_post is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+        
+    # --- PERMISSION CHECK (IMPORTANT) ---
+    is_owner = db_post.user_id == current_user.id
+    can_delete_any = "delete_post" in current_user.group.permissions
+
+    if not is_owner and not can_delete_any:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this post")
+
+    db.delete(db_post)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
