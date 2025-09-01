@@ -7,7 +7,7 @@ import datetime
 from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import (APIKeyHeader, OAuth2PasswordBearer,OAuth2PasswordRequestForm)
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -27,6 +27,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 # --- Re-usable components ---
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+api_key_scheme = APIKeyHeader(name="Authorization")
 
 # --- Database Setup ---
 DATABASE_URL = "sqlite:///./blog.db"
@@ -154,7 +155,7 @@ def create_access_token(data: dict, expires_delta: Optional[datetime.timedelta] 
     return encoded_jwt
 
 # --- Authentication Dependency ---
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+async def get_current_user(token: str = Depends(api_key_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
