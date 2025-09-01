@@ -1,0 +1,151 @@
+.create-post-page {
+  padding: 2rem 0;
+  min-height: calc(100vh - 200px);
+}
+
+.create-post-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.create-post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.create-post-header h1 {
+  font-size: 2rem;
+  margin: 0;
+}
+
+.content-type-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-color);
+}
+
+.toggle-label input[type="checkbox"] {
+  margin: 0;
+}
+
+.create-post-form {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  padding: 2rem;
+}
+
+.form-row {
+  margin-bottom: 2rem;
+}
+
+.form-row:last-of-type {
+  margin-bottom: 0;
+}
+
+.form-help {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--text-light);
+  font-size: 0.8125rem;
+}
+
+.content-editor {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.draft-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.draft-status {
+  font-size: 0.875rem;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+.publish-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.error-message {
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .create-post-page {
+    padding: 1rem 0;
+  }
+
+  .create-post-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .create-post-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .create-post-form {
+    padding: 1.5rem;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .draft-actions,
+  .publish-actions {
+    justify-content: center;
+  }
+
+  .publish-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .create-post-form {
+    padding: 1rem;
+  }
+
+  .content-editor {
+    font-size: 0.8125rem;
+  }
+}
