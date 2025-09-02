@@ -53,17 +53,23 @@ const Home = () => {
               <article key={post.id} className="post-card">
                 <div className="post-content">
                   <h3 className="post-title">
-                    {/* Link to the single post page using its ID */}
                     <Link to={`/posts/${post.id}`}>{post.title || post.clean}</Link>
                   </h3>
-                  {/* Create an excerpt by truncating the body */}
-                  <p className="post-excerpt">
-                    {post.body ? `${post.body.substring(0, 150)}...` : 'This is a feather post.'}
-                  </p>
+                  {post.feather === 'photo' && post.body?.startsWith('/uploads/') ? (
+                    <Link to={`/posts/${post.id}`}>
+                      <img
+                        src={`http://127.0.0.1:8000${post.body}`}
+                        alt={post.title || post.clean}
+                        style={{ width: '100%', height: '220px', objectFit: 'cover', borderRadius: '8px' }}
+                      />
+                    </Link>
+                  ) : (
+                    <p className="post-excerpt">
+                      {post.body ? `${post.body.substring(0, 150)}...` : 'This is a feather post.'}
+                    </p>
+                  )}
                   <div className="post-meta">
-                    {/* Display the author's username from the API */}
                     <span className="post-author">By {post.owner.login}</span>
-                    {/* Format the creation date */}
                     <span className="post-date">{formatDate(post.created_at)}</span>
                   </div>
                   <Link to={`/posts/${post.id}`} className="read-more">

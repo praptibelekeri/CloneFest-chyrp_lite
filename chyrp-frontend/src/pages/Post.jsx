@@ -78,7 +78,11 @@ const canDelete = currentUser && (
         </div>
       </header>
       <div className="post-content">
-        <ReactMarkdown>{post.body || ''}</ReactMarkdown>
+        {post.feather === 'photo' && post.body?.startsWith('/uploads/') ? (
+          <img src={`http://127.0.0.1:8000${post.body}`} alt={post.title || post.clean} style={{ maxWidth: '100%', height: 'auto' }} />
+        ) : (
+          <ReactMarkdown>{post.body || ''}</ReactMarkdown>
+        )}
       </div>
       <footer className="post-footer">
         <button onClick={handleLike} className="btn-like">❤️ Like</button>
