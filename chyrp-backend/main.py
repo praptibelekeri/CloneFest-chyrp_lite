@@ -197,6 +197,13 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return db_user
 
+@app.get("/users/me", response_model=schemas.UserModel, tags=["Users"])
+async def read_users_me(current_user: models.User = Depends(get_current_user)):
+    """
+    Get the profile for the currently logged in user.
+    """
+    return current_user
+
 # --- Groups Endpoints ---
 @app.post("/groups/", response_model=schemas.GroupModel, tags=["Groups"])
 def create_group(group: schemas.GroupCreate, db: Session = Depends(get_db)):

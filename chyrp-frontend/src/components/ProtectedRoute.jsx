@@ -1,19 +1,13 @@
-import { useAuth } from '../contexts/AuthContext';
+// src/components/ProtectedRoute.jsx
 import { Navigate, useLocation } from 'react-router-dom';
 
 const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
+  const token = localStorage.getItem('token');
   const location = useLocation();
 
-  if (loading) {
-    return (
-      <div className="container" style={{ padding: '4rem 0', textAlign: 'center' }}>
-        <div>Loading...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
+  if (!token) {
+    // Redirect them to the /login page, but save the current location they were
+    // trying to go to. This allows us to send them back after login.
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

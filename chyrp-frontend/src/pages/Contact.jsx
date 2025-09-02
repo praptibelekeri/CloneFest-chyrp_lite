@@ -1,38 +1,45 @@
-import { getPageBySlug } from '../data/mockData';
+// src/pages/Contact.jsx
+
+import { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import apiClient from '../api';
 
 const Contact = () => {
-  const page = getPageBySlug('contact');
+  const [page, setPage] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const formatContent = (content) => {
-    return content.split('\n').map((paragraph, index) => {
-      if (paragraph.startsWith('## ')) {
-        return <h2 key={index}>{paragraph.substring(3)}</h2>;
+  useEffect(() => {
+    const fetchPage = async () => {
+      try {
+        // Fetch the specific page with the URL slug "contact"
+        const response = await apiClient.get('/posts/?content_type=page&clean=contact');
+        
+        // The API returns a list, so we take the first item if it exists
+        if (response.data && response.data.length > 0) {
+          setPage(response.data[0]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch the Contact page:", error);
+      } finally {
+        setLoading(false);
       }
-      if (paragraph.startsWith('### ')) {
-        return <h3 key={index}>{paragraph.substring(4)}</h3>;
-      }
-      if (paragraph.trim() === '') {
-        return <br key={index} />;
-      }
-      if (paragraph.startsWith('**') && paragraph.includes(':**')) {
-        const parts = paragraph.split(':**');
-        return (
-          <p key={index}>
-            <strong>{parts[0].substring(2)}</strong>: {parts[1]}
-          </p>
-        );
-      }
-      if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
-        return <p key={index}><strong>{paragraph.slice(2, -2)}</strong></p>;
-      }
-      return <p key={index}>{paragraph}</p>;
-    });
-  };
+    };
+
+    fetchPage();
+  }, []); // The empty array ensures this runs only once
+
+  if (loading) {
+    return (
+      <div className="container" style={{ padding: '4rem 0', textAlign: 'center' }}>
+        <h1>Loading...</h1>
+      </div>
+    );
+  }
 
   if (!page) {
     return (
       <div className="container" style={{ padding: '4rem 0', textAlign: 'center' }}>
-        <h1>Page Not Found</h1>
+        <h1>Contact Page Not Found</h1>
       </div>
     );
   }
@@ -44,7 +51,8 @@ const Contact = () => {
           <h1 className="post-title">{page.title}</h1>
         </header>
         <div className="post-content" style={{ maxWidth: '800px', margin: '0 auto' }}>
-          {formatContent(page.content)}
+          {/* Use ReactMarkdown to safely render the content from the backend */}
+          <ReactMarkdown>{page.body}</ReactMarkdown>
         </div>
       </div>
     </div>

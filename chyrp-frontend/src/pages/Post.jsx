@@ -1,118 +1,84 @@
+// src/pages/Post.jsx
+
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getPostBySlug, getPageBySlug } from '../data/mockData';
-import { useAuth } from '../contexts/AuthContext';
+import ReactMarkdown from 'react-markdown';
+import apiClient from '../api';
 import './Post.css';
 
 const Post = () => {
-  const { slug } = useParams();
-  const { user } = useAuth();
+  const [post, setPost] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { postId } = useParams();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchPostAndUser = async () => {
+      try {
+        // Fetch the post
+        const postResponse = await apiClient.get(`/posts/${postId}`);
+        setPost(postResponse.data);
+
+        // Fetch the current user profile (will fail if not logged in)
+        const userResponse = await apiClient.get('/users/me');
+        setCurrentUser(userResponse.data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPostAndUser();
+  }, [postId]);
+
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this post?')) {
+      try {
+        await apiClient.delete(`/posts/${postId}`);
+        navigate('/');
+      } catch (error) {
+        alert('Failed to delete post. You may not have permission.');
+      }
+    }
+  };
   
-  const post = getPostBySlug(slug) || getPageBySlug(slug);
-
-  if (!post) {
-    return (
-      <div className="container" style={{ padding: '4rem 0', textAlign: 'center' }}>
-        <h1>Post Not Found</h1>
-        <p>The post you're looking for doesn't exist.</p>
-        <Link to="/" className="btn btn-primary">← Back to Home</Link>
-      </div>
-    );
-  }
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const handleLike = async () => {
+     try {
+      await apiClient.post(`/posts/${postId}/like`);
+      alert(`Toggled like for post ${postId}!`);
+    } catch (error) {
+      alert("You must be logged in to like a post.");
+    }
   };
 
-  const formatContent = (content) => {
-    return content.split('\n').map((paragraph, index) => {
-      if (paragraph.startsWith('## ')) {
-        return <h2 key={index}>{paragraph.substring(3)}</h2>;
-      }
-      if (paragraph.startsWith('### ')) {
-        return <h3 key={index}>{paragraph.substring(4)}</h3>;
-      }
-      if (paragraph.startsWith('```')) {
-        return null; // Handle code blocks separately if needed
-      }
-      if (paragraph.trim() === '') {
-        return <br key={index} />;
-      }
-      return <p key={index}>{paragraph}</p>;
-    });
-  };
+  if (loading) return <p>Loading...</p>;
+  if (!post) return <h1>Post not found</h1>;
+  
+  const canEditOrDelete = currentUser && (currentUser.id === post.owner.id || currentUser.group.permissions.includes('edit_post'));
 
   return (
     <div className="post-page">
-      <div className="container">
-        <article className="post">
-          <header className="post-header">
-            <Link to="/" className="back-link">← Back to Blog</Link>
-            <h1 className="post-title">{post.title}</h1>
-            {!post.isPage && (
-              <div className="post-meta">
-                <span className="post-author">By {post.author}</span>
-                <span className="post-date">{formatDate(post.publishedAt)}</span>
-                {user && (
-                  <Link 
-                    to={`/edit-post/${post.slug}`} 
-                    className="btn btn-secondary btn-small"
-                  >
-                    Edit Post
-                  </Link>
-                )}
-              </div>
-            )}
-          </header>
-
-          <div className="post-content">
-            {formatContent(post.content)}
-          </div>
-
-          {!post.isPage && (
-            <footer className="post-footer">
-              <div className="post-actions">
-                <button className="btn btn-primary">
-                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                  </svg>
-                  Like Post
-                </button>
-                <button className="btn btn-secondary">
-                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 1 1 0-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 1 0 5.367-2.684 3 3 0 0 0-5.367 2.684zm0 9.316a3 3 0 1 0 5.367 2.684 3 3 0 0 0-5.367-2.684z"/>
-                  </svg>
-                  Share
-                </button>
-              </div>
-
-              <div className="comments-section">
-                <h3>Comments</h3>
-                <div className="comment-form">
-                  {user ? (
-                    <form>
-                      <textarea 
-                        className="form-textarea" 
-                        placeholder="Write your comment..." 
-                        rows="4"
-                      ></textarea>
-                      <button type="submit" className="btn btn-primary">Post Comment</button>
-                    </form>
-                  ) : (
-                    <div className="login-prompt">
-                      <p>Please <Link to="/login">log in</Link> to leave a comment.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </footer>
+      <header className="post-header">
+        <Link to="/" className="back-link">← Back to Home</Link>
+        <h1>{post.title || post.clean}</h1>
+        <div className="post-meta">
+          <span>By {post.owner.login}</span>
+          <span>{new Date(post.created_at).toLocaleDateString()}</span>
+          {canEditOrDelete && (
+            <>
+              <Link to={`/edit-post/${post.id}`} className="btn-edit">Edit</Link>
+              <button onClick={handleDelete} className="btn-delete">Delete</button>
+            </>
           )}
-        </article>
+        </div>
+      </header>
+      <div className="post-content">
+        <ReactMarkdown>{post.body || ''}</ReactMarkdown>
       </div>
+      <footer className="post-footer">
+        <button onClick={handleLike} className="btn-like">❤️ Like</button>
+      </footer>
     </div>
   );
 };
