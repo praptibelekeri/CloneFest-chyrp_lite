@@ -5,7 +5,7 @@
 # ===============================================================================
 import datetime
 from typing import List, Optional
-from database import engine
+from database import engine, SessionLocal
 from fastapi import Depends, FastAPI, HTTPException, Response, status
 from fastapi.security import (APIKeyHeader, OAuth2PasswordBearer, OAuth2PasswordRequestForm)
 from jose import JWTError, jwt
@@ -87,6 +87,74 @@ app = FastAPI(
     description="API for the modern Chyrp blogging engine.",
     version="1.0.0",
 )
+
+@app.on_event("startup")
+def create_initial_data():
+    """
+    Checks if initial data (groups, admin user, pages) exists,
+    and if not, creates it. Runs only once when the server starts.
+    """
+    db = SessionLocal()
+    try:
+        # Check if any groups exist
+        if db.query(models.Group).first() is None:
+            print("Database is empty. Seeding initial data...")
+
+            # 1. Create User Groups
+            admin_permissions = [
+                "edit_post", "delete_post", "add_user", "edit_user", 
+                "delete_user", "add_group", "edit_group", "delete_group"
+            ]
+            member_permissions = ["add_post", "edit_own_post", "delete_own_post"]
+
+            admin_group = models.Group(name="Admin", permissions=admin_permissions)
+            member_group = models.Group(name="Member", permissions=member_permissions)
+            
+            db.add(admin_group)
+            db.add(member_group)
+            db.commit()
+            db.refresh(admin_group)
+            
+            # 2. Create an Admin User
+            hashed_password = get_password_hash("admin")
+            admin_user = models.User(
+                login="admin",
+                email="admin@example.com",
+                full_name="Administrator",
+                hashed_password=hashed_password,
+                group_id=admin_group.id
+            )
+            db.add(admin_user)
+            db.commit()
+            db.refresh(admin_user)
+
+            # 3. Create Static Pages
+            about_page = models.Post(
+                content_type="page",
+                title="About Us",
+                body="## Welcome!\n\nThis is the default 'About Us' page. You can edit this content anytime.",
+                clean="about-us",
+                status="public",
+                user_id=admin_user.id
+            )
+
+            contact_page = models.Post(
+                content_type="page",
+                title="Contact",
+                body="This is the default 'Contact' page.",
+                clean="contact",
+                status="public",
+                user_id=admin_user.id
+            )
+            db.add(about_page)
+            db.add(contact_page)
+            db.commit()
+            print("Initial data created successfully.")
+        else:
+            print("Database already contains data. Skipping seeding.")
+
+    finally:
+        db.close()
 
 # --- Include the router from your new interactions file ---
 app.include_router(interactions.router)
