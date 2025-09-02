@@ -1,53 +1,50 @@
+// src/pages/Register.jsx
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import apiClient from '../api'; // Import our central API client
 import './Auth.css';
 
 const Register = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
+  const [username, setUsername] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const { register } = useAuth();
   const navigate = useNavigate();
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (formData.password !== formData.confirmPassword) {
+    if (password !== confirmPassword) {
       setError('Passwords do not match');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
       return;
     }
 
     setIsLoading(true);
 
+    // This object must match the backend's UserCreate schema
+    const userData = {
+      login: username,
+      full_name: fullName,
+      email: email,
+      password: password
+    };
+
     try {
-      const result = await register(formData.name, formData.email, formData.password);
-      if (result.success) {
-        navigate('/');
-      } else {
-        setError(result.error || 'Registration failed');
-      }
+      // Send the registration request to the backend
+      await apiClient.post('/users/', userData);
+      
+      // On success, redirect the user to the login page
+      alert('Registration successful! Please log in.');
+      navigate('/login');
+
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError('Registration failed. Username or email may be taken.');
     } finally {
       setIsLoading(false);
     }
@@ -69,16 +66,29 @@ const Register = () => {
               )}
 
               <div className="form-group">
-                <label htmlFor="name" className="form-label">Full Name</label>
+                <label htmlFor="username" className="form-label">Username</label>
                 <input
                   type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
+                  id="username"
+                  name="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="form-input"
+                  placeholder="Enter a unique username"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="fullName" className="form-label">Full Name</label>
+                <input
+                  type="text"
+                  id="fullName"
+                  name="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
                   className="form-input"
                   placeholder="Enter your full name"
-                  required
                 />
               </div>
 
@@ -88,8 +98,8 @@ const Register = () => {
                   type="email"
                   id="email"
                   name="email"
-                  value={formData.email}
-                  onChange={handleChange}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="form-input"
                   placeholder="Enter your email"
                   required
@@ -102,10 +112,10 @@ const Register = () => {
                   type="password"
                   id="password"
                   name="password"
-                  value={formData.password}
-                  onChange={handleChange}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="form-input"
-                  placeholder="Enter your password (min. 6 characters)"
+                  placeholder="Enter your password"
                   required
                 />
               </div>
@@ -116,8 +126,8 @@ const Register = () => {
                   type="password"
                   id="confirmPassword"
                   name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   className="form-input"
                   placeholder="Confirm your password"
                   required

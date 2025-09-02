@@ -1,43 +1,44 @@
+// src/pages/Login.jsx
+
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import apiClient from '../api'; // Import our central API client
 import './Auth.css';
 
 const Login = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
   const from = location.state?.from?.pathname || '/';
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
+    // The /token endpoint expects form data, not JSON.
+    // We use URLSearchParams to format it correctly.
+    const formData = new URLSearchParams();
+    formData.append('username', username);
+    formData.append('password', password);
+
     try {
-      const result = await login(formData.email, formData.password);
-      if (result.success) {
-        navigate(from, { replace: true });
-      } else {
-        setError(result.error || 'Login failed');
-      }
+      // Send the login request to the backend
+      const response = await apiClient.post('/token', formData);
+      
+      // If successful, store the token in localStorage
+      localStorage.setItem('token', response.data.access_token);
+      
+      // Navigate to the page the user was trying to access, or the home page
+      navigate(from, { replace: true });
+
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError('Login failed. Please check your username and password.');
     } finally {
       setIsLoading(false);
     }
@@ -59,15 +60,15 @@ const Login = () => {
               )}
 
               <div className="form-group">
-                <label htmlFor="email" className="form-label">Email</label>
+                <label htmlFor="username" className="form-label">Username</label>
                 <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="form-input"
-                  placeholder="Enter your email"
+                  placeholder="Enter your username"
                   required
                 />
               </div>
@@ -78,8 +79,8 @@ const Login = () => {
                   type="password"
                   id="password"
                   name="password"
-                  value={formData.password}
-                  onChange={handleChange}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="form-input"
                   placeholder="Enter your password"
                   required
@@ -97,9 +98,6 @@ const Login = () => {
 
             <div className="auth-footer">
               <p>Don't have an account? <Link to="/register">Sign up here</Link></p>
-              <p className="demo-info">
-                <strong>Demo:</strong> Use any email and password to log in
-              </p>
             </div>
           </div>
         </div>
