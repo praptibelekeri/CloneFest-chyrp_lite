@@ -263,3 +263,74 @@ async def create_photo_post(
     db.commit()
     db.refresh(db_post)
     return db_post
+
+@app.post("/posts/quote", response_model=schemas.PostModel, tags=["Posts"])
+async def create_quote_post(
+    clean: str = Form(...),
+    quote: str = Form(...),
+    attribution: str = Form(...),
+    status: str = Form("public"),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    # Prevent duplicate slug
+    existing = db.query(models.Post).filter(models.Post.clean == clean).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="A post with this slug already exists.")
+
+    # Create quote body with attribution
+    quote_body = f'"{quote}"\n\n— {attribution}'
+
+    # Create a post with feather 'quote'
+    db_post = models.Post(
+        content_type="post",
+        feather="quote",
+        title=None,  # Quotes typically don't have titles
+        body=quote_body,
+        clean=clean,
+        status=status,
+        user_id=current_user.id,
+    )
+    db.add(db_post)
+    db.commit()
+    db.refresh(db_post)
+    return db_post
+
+@app.post("/posts/link", response_model=schemas.PostModel, tags=["Posts"])
+async def create_link_post(
+    clean: str = Form(...),
+    title: str = Form(...),
+    url: str = Form(...),
+    description: Optional[str] = Form(None),
+    status: str = Form("public"),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    # Prevent duplicate slug
+    existing = db.query(models.Post).filter(models.Post.clean == clean).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="A post with this slug already exists.")
+
+    # Validate URL format
+    if not url.startswith(('http://', 'https://')):
+        url = f'https://{url}'
+
+    # Create link body with description
+    link_body = f'**{title}**\n\n[{url}]({url})'
+    if description:
+        link_body += f'\n\n{description}'
+
+    # Create a post with feather 'link'
+    db_post = models.Post(
+        content_type="post",
+        feather="link",
+        title=title,
+        body=link_body,
+        clean=clean,
+        status=status,
+        user_id=current_user.id,
+    )
+    db.add(db_post)
+    db.commit()
+    db.refresh(db_post)
+    return db_post

@@ -80,6 +80,42 @@ const canDelete = currentUser && (
       <div className="post-content">
         {post.feather === 'photo' && post.body?.startsWith('/uploads/') ? (
           <img src={`http://127.0.0.1:8000${post.body}`} alt={post.title || post.clean} style={{ maxWidth: '100%', height: 'auto' }} />
+        ) : post.feather === 'quote' ? (
+          <blockquote style={{
+            borderLeft: '4px solid #007bff',
+            paddingLeft: '20px',
+            margin: '20px 0',
+            fontStyle: 'italic',
+            fontSize: '1.2em',
+            lineHeight: '1.6',
+            color: '#333'
+          }}>
+            <ReactMarkdown>{post.body || ''}</ReactMarkdown>
+          </blockquote>
+        ) : post.feather === 'link' ? (
+          <div style={{
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            padding: '20px',
+            margin: '20px 0',
+            backgroundColor: '#f9f9f9'
+          }}>
+            <ReactMarkdown 
+              components={{
+                a: ({ href, children }) => (
+                  <a href={href} target="_blank" rel="noopener noreferrer" style={{ 
+                    color: '#007bff', 
+                    textDecoration: 'underline',
+                    fontWeight: 'bold'
+                  }}>
+                    {children} 🔗
+                  </a>
+                )
+              }}
+            >
+              {post.body || ''}
+            </ReactMarkdown>
+          </div>
         ) : (
           <ReactMarkdown>{post.body || ''}</ReactMarkdown>
         )}

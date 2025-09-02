@@ -63,6 +63,33 @@ const Home = () => {
                         style={{ width: '100%', height: '220px', objectFit: 'cover', borderRadius: '8px' }}
                       />
                     </Link>
+                  ) : post.feather === 'link' ? (
+                    <div style={{
+                      border: '1px solid #ddd',
+                      borderRadius: '6px',
+                      padding: '12px',
+                      margin: '10px 0',
+                      backgroundColor: '#f9f9f9',
+                      fontSize: '0.9em'
+                    }}>
+                      <strong>🔗 Link Post</strong><br/>
+                      {(() => {
+                        // Extract URL from the post body
+                        const urlMatch = post.body?.match(/https?:\/\/[^\s]+/);
+                        const url = urlMatch ? urlMatch[0] : null;
+                        return url ? (
+                          <a href={url} target="_blank" rel="noopener noreferrer" style={{ 
+                            color: '#007bff', 
+                            textDecoration: 'underline',
+                            fontWeight: 'bold'
+                          }}>
+                            {post.title || 'Shared Link'} 🔗
+                          </a>
+                        ) : (
+                          post.title || 'Shared Link'
+                        );
+                      })()}
+                    </div>
                   ) : (
                     <p className="post-excerpt">
                       {post.body ? `${post.body.substring(0, 150)}...` : 'This is a feather post.'}
