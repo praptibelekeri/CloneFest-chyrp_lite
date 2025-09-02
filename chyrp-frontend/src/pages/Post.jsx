@@ -42,9 +42,9 @@ const Post = () => {
       }
     }
   };
-  
+
   const handleLike = async () => {
-     try {
+    try {
       await apiClient.post(`/posts/${postId}/like`);
       alert(`Toggled like for post ${postId}!`);
     } catch (error) {
@@ -54,8 +54,16 @@ const Post = () => {
 
   if (loading) return <p>Loading...</p>;
   if (!post) return <h1>Post not found</h1>;
-  
-  const canEditOrDelete = currentUser && (currentUser.id === post.owner.id || currentUser.group.permissions.includes('edit_post'));
+
+const canEdit = currentUser && (
+  currentUser.group.permissions.includes('edit_post') ||
+  (currentUser.id === post.owner.id && currentUser.group.permissions.includes('edit_own_post'))
+);
+
+const canDelete = currentUser && (
+  currentUser.group.permissions.includes('delete_post') ||
+  (currentUser.id === post.owner.id && currentUser.group.permissions.includes('delete_own_post'))
+);
 
   return (
     <div className="post-page">
@@ -65,12 +73,8 @@ const Post = () => {
         <div className="post-meta">
           <span>By {post.owner.login}</span>
           <span>{new Date(post.created_at).toLocaleDateString()}</span>
-          {canEditOrDelete && (
-            <>
-              <Link to={`/edit-post/${post.id}`} className="btn-edit">Edit</Link>
-              <button onClick={handleDelete} className="btn-delete">Delete</button>
-            </>
-          )}
+          {canEdit && <Link to={`/edit-post/${post.id}`} className="btn-edit">Edit</Link>}
+          {canDelete && <button onClick={handleDelete} className="btn-delete">Delete</button>}
         </div>
       </header>
       <div className="post-content">
