@@ -6,6 +6,7 @@ import datetime
 
 # --- MOVED: Define PostOwner before it is used in PostModel ---
 class PostOwner(BaseModel):
+    id: int
     login: str
     class Config:
         from_attributes = True
