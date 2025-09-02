@@ -1,9 +1,28 @@
+// src/pages/Home.jsx
+
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getPublishedPosts } from '../data/mockData';
+import apiClient from '../api'; // Import our API client
 import './Home.css';
 
 const Home = () => {
-  const posts = getPublishedPosts();
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // This function fetches posts from the backend when the component loads
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const response = await apiClient.get('/posts/?content_type=post');
+        setPosts(response.data);
+      } catch (error) {
+        console.error("Failed to fetch posts:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPosts();
+  }, []); // The empty array ensures this runs only once
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -12,6 +31,10 @@ const Home = () => {
       day: 'numeric'
     });
   };
+
+  if (loading) {
+    return <div className="container"><p>Loading posts...</p></div>;
+  }
 
   return (
     <div className="home">
@@ -30,14 +53,20 @@ const Home = () => {
               <article key={post.id} className="post-card">
                 <div className="post-content">
                   <h3 className="post-title">
-                    <Link to={`/post/${post.slug}`}>{post.title}</Link>
+                    {/* Link to the single post page using its ID */}
+                    <Link to={`/posts/${post.id}`}>{post.title || post.clean}</Link>
                   </h3>
-                  <p className="post-excerpt">{post.excerpt}</p>
+                  {/* Create an excerpt by truncating the body */}
+                  <p className="post-excerpt">
+                    {post.body ? `${post.body.substring(0, 150)}...` : 'This is a feather post.'}
+                  </p>
                   <div className="post-meta">
-                    <span className="post-author">By {post.author}</span>
-                    <span className="post-date">{formatDate(post.publishedAt)}</span>
+                    {/* Display the author's username from the API */}
+                    <span className="post-author">By {post.owner.login}</span>
+                    {/* Format the creation date */}
+                    <span className="post-date">{formatDate(post.created_at)}</span>
                   </div>
-                  <Link to={`/post/${post.slug}`} className="read-more">
+                  <Link to={`/posts/${post.id}`} className="read-more">
                     Read More →
                   </Link>
                 </div>

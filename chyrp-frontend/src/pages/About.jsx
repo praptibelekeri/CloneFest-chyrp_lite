@@ -1,39 +1,46 @@
-import { getPageBySlug } from '../data/mockData';
+// src/pages/About.jsx
+
+import { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown'; // Import the library
+import apiClient from '../api';
 
 const About = () => {
-  const page = getPageBySlug('about');
+  const [page, setPage] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const formatContent = (content) => {
-    return content.split('\n').map((paragraph, index) => {
-      if (paragraph.startsWith('## ')) {
-        return <h2 key={index}>{paragraph.substring(3)}</h2>;
+  useEffect(() => {
+    const fetchPage = async () => {
+      try {
+        // Fetch the specific page with the URL slug "about-us"
+        const response = await apiClient.get('/posts/?content_type=page&clean=about-us');
+        
+        // The API returns a list, so we take the first item if it exists
+        if (response.data && response.data.length > 0) {
+          setPage(response.data[0]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch the About page:", error);
+      } finally {
+        setLoading(false);
       }
-      if (paragraph.startsWith('### ')) {
-        return <h3 key={index}>{paragraph.substring(4)}</h3>;
-      }
-      if (paragraph.trim() === '') {
-        return <br key={index} />;
-      }
-      if (paragraph.startsWith('- **')) {
-        const boldText = paragraph.match(/\*\*(.*?)\*\*/);
-        const remainingText = paragraph.substring(paragraph.indexOf('**') + boldText[0].length + 2);
-        return (
-          <li key={index}>
-            <strong>{boldText[1]}</strong>{remainingText}
-          </li>
-        );
-      }
-      if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
-        return <p key={index}><strong>{paragraph.slice(2, -2)}</strong></p>;
-      }
-      return <p key={index}>{paragraph}</p>;
-    });
-  };
+    };
+
+    fetchPage();
+  }, []); // The empty array ensures this runs only once
+
+  if (loading) {
+    return (
+      <div className="container" style={{ padding: '4rem 0', textAlign: 'center' }}>
+        <h1>Loading...</h1>
+      </div>
+    );
+  }
 
   if (!page) {
     return (
       <div className="container" style={{ padding: '4rem 0', textAlign: 'center' }}>
-        <h1>Page Not Found</h1>
+        <h1>About Page Not Found</h1>
+        <p>This page has not been created in the backend yet.</p>
       </div>
     );
   }
@@ -45,7 +52,8 @@ const About = () => {
           <h1 className="post-title">{page.title}</h1>
         </header>
         <div className="post-content" style={{ maxWidth: '800px', margin: '0 auto' }}>
-          {formatContent(page.content)}
+          {/* Use ReactMarkdown to safely render the content */}
+          <ReactMarkdown>{page.body}</ReactMarkdown>
         </div>
       </div>
     </div>

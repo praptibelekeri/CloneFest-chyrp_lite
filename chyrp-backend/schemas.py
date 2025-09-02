@@ -4,6 +4,12 @@ from pydantic import BaseModel
 from typing import List, Optional
 import datetime
 
+# --- MOVED: Define PostOwner before it is used in PostModel ---
+class PostOwner(BaseModel):
+    login: str
+    class Config:
+        from_attributes = True
+
 # --- Pydantic Schemas for Posts/Pages ---
 
 class PostBase(BaseModel):
@@ -33,7 +39,7 @@ class PostModel(PostBase):
     id: int
     created_at: datetime.datetime
     updated_at: datetime.datetime
-    
+    owner: PostOwner # Now this works because PostOwner is defined above
     class Config:
         from_attributes = True
 
@@ -48,7 +54,6 @@ class GroupCreate(GroupBase):
 class GroupModel(GroupBase):
     id: int
     permissions: List[str]
-
     class Config:
         from_attributes = True
 
@@ -65,9 +70,8 @@ class UserCreate(UserBase):
 class UserModel(UserBase):
     id: int
     joined_at: datetime.datetime
-    posts: List[PostModel] = []
+    # --- REMOVED: 'posts' list to simplify and prevent circular dependencies ---
     group: Optional[GroupModel] = None
-
     class Config:
         from_attributes = True
 
@@ -75,3 +79,4 @@ class UserModel(UserBase):
 
 class TokenData(BaseModel):
     login: Optional[str] = None
+
